@@ -39,7 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_mysql',
     'rest_framework',
-    'app_car'
+    'app_car',
+    'frontend',
 ]
 
 MIDDLEWARE = [
