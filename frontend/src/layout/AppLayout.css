@@ -1,0 +1,42 @@
+/* Custom sidebar styles */
+.custom-sidebar .ant-menu-item:hover,
+.custom-sidebar .ant-menu-submenu-title:hover {
+  background-color: rgba(0, 66, 129, 0.04) !important;
+  color: #1677ff !important;
+  transition: all 0.2s ease !important;
+}
+
+.custom-sidebar .ant-menu-item-selected {
+  background-color: rgba(0, 66, 129, 0.06) !important;
+  color: #004281 !important;
+  border-right: 3px solid #004281 !important;
+}
+
+.custom-sidebar .ant-menu-submenu-selected > .ant-menu-submenu-title {
+  background-color: rgba(0, 66, 129, 0.04) !important;
+  color: #004281 !important;
+}
+
+.custom-sidebar .ant-menu-item,
+.custom-sidebar .ant-menu-submenu-title {
+  transition: all 0.2s ease !important;
+  border-radius: 6px !important;
+  margin: 2px 8px !important;
+}
+
+.custom-sidebar .ant-menu-item-icon,
+.custom-sidebar .ant-menu-submenu-arrow {
+  transition: all 0.2s ease !important;
+}
+
+/* Suavizar ainda mais os submenus */
+.custom-sidebar .ant-menu-sub .ant-menu-item:hover {
+  background-color: rgba(0, 66, 129, 0.03) !important;
+  color: #1677ff !important;
+}
+
+.custom-sidebar .ant-menu-sub .ant-menu-item-selected {
+  background-color: rgba(0, 66, 129, 0.05) !important;
+  color: #004281 !important;
+  border-right: 2px solid #004281 !important;
+}

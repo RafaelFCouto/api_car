@@ -25,7 +25,15 @@ SECRET_KEY = 'django-insecure-$8g4eq+itiic)hhdo)ub@na%*_3i!rcr2^recc$ztw!%l#tk_l
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
+
+# CORS settings
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+CORS_ALLOW_CREDENTIALS = True
 
 
 # Application definition
@@ -39,11 +47,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_mysql',
     'rest_framework',
+    'corsheaders',
     'app_car',
-    'frontend',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -82,7 +91,7 @@ DATABASES = {
         'NAME': os.environ.get('DB_NAME', 'api_car_db'),
         'USER': os.environ.get('DB_USER', 'root'),
         'PASSWORD': os.environ.get('DB_PASSWORD', 'cmzl2025'),
-        'HOST': os.environ.get('DB_HOST', 'db'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
         'PORT': os.environ.get('DB_PORT', '3306'),
     }
 }
