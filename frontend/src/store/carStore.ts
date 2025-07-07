@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Car, CarFormData } from '../types';
 import { carService } from '../services/api';
+import { toast } from 'react-toastify';
 
 interface CarStore {
   cars: Car[];
@@ -73,6 +74,7 @@ export const useCarStore = create<CarStore>((set, get) => ({
     set({ loading: true, error: null });
     try {
       await carService.delete(id);
+      toast.success('Carro excluído com sucesso!');
       set({ 
         cars: get().cars.filter(car => car.id_veiculo !== id),
         loading: false 
