@@ -46,6 +46,12 @@ export const useCarsTable = () => {
       key: "ano",
       render: (text: number | undefined) => <span>{text ?? "Sem ano"}</span>,
     },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      render: (text: number | undefined) => <span>{text ?? "Sem ano"}</span>,
+    },
   ];
 
   return { columns, cars, loading };
