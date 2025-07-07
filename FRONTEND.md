@@ -1021,4 +1021,837 @@ const { loading } = useCarStore();
 
 ---
 
+## 🔥 Possíveis Perguntas do Professor e Respostas Detalhadas
+
+### **🌐 Conceitos Fundamentais e Protocolos**
+
+#### **P1: "Explique a diferença entre URI, URL e URN com exemplos do seu projeto"**
+**R:** No nosso projeto temos exemplos práticos:
+- **URI**: `http://localhost:3000/cars/edit/123` (identificador completo)
+- **URL**: `http://localhost:3000/cars/edit/` (localização)
+- **URN**: `123` (nome/identificador do recurso)
+
+```typescript
+// src/pages/cars/hooks/useCarsTable.tsx
+const navigate = useNavigate();
+
+// Exemplo prático de construção de URI
+const handleEdit = (carId: number) => {
+  // URL base + URN do carro = URI completa
+  navigate(`/cars/edit/${carId}`); // URI: /cars/edit/123
+};
+```
+
+#### **P2: "Como funciona o protocolo HTTP no seu sistema? Mostre os métodos utilizados"**
+**R:** Implementamos todos os métodos HTTP para CRUD:
+
+```typescript
+// src/services/api.ts
+export const carService = {
+  // GET - Buscar dados (Safe + Idempotent)
+  getAll: async (): Promise<Car[]> => {
+    const response = await api.get<Car[]>('/car/'); // HTTP GET
+    return response.data;
+  },
+
+  // POST - Criar recurso (Not Safe + Not Idempotent)
+  create: async (data: CarFormData): Promise<Car> => {
+    const response = await api.post<Car>('/car/', data); // HTTP POST
+    return response.data;
+  },
+
+  // PUT - Atualizar completo (Not Safe + Idempotent)
+  update: async (id: number, data: CarFormData): Promise<Car> => {
+    const response = await api.put<Car>(`/car/${id}/`, data); // HTTP PUT
+    return response.data;
+  },
+
+  // DELETE - Remover (Not Safe + Idempotent)
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/car/${id}/`); // HTTP DELETE
+  },
+};
+```
+
+#### **P3: "Explique o modelo Cliente-Servidor implementado no seu projeto"**
+**R:** Implementamos arquitetura Cliente-Servidor clássica:
+
+```typescript
+// CLIENTE (Frontend React)
+// src/store/carStore.ts
+const fetchCars = async () => {
+  set({ loading: true }); // 1. Cliente inicia requisição
+  try {
+    const cars = await carService.getAll(); // 2. Envia HTTP Request
+    set({ cars, loading: false }); // 4. Processa resposta
+  } catch (error) {
+    set({ error: error.message, loading: false }); // 4. Trata erros
+  }
+};
+
+// SERVIDOR (Django Backend)
+// Porta 8000, processa requisições e retorna dados
+```
+
+**Características**:
+- **Cliente (React)**: Porta 3000, interface do usuário, estado reativo
+- **Servidor (Django)**: Porta 8000, processamento, banco de dados
+- **Protocolo**: HTTP/HTTPS
+- **Formato**: JSON para troca de dados
+
+#### **P4: "Como você trata os Status Codes HTTP no frontend?"**
+**R:** Implementamos tratamento específico por status:
+
+```typescript
+// src/store/carStore.ts
+try {
+  const response = await carService.delete(id);
+  // 200/204 - Sucesso
+  toast.success('Carro excluído com sucesso!');
+} catch (error) {
+  // Tratamento por status code
+  if (error.response?.status === 404) {
+    toast.error('Carro não encontrado');
+  } else if (error.response?.status === 403) {
+    toast.error('Não autorizado');
+  } else if (error.response?.status === 500) {
+    toast.error('Erro interno do servidor');
+  } else {
+    toast.error('Erro desconhecido');
+  }
+}
+```
+
+### **⚛️ React e Arquitetura Frontend**
+
+#### **P5: "Como funciona o Virtual DOM no React? Por que é importante?"**
+**R:** O Virtual DOM é uma representação em memória do DOM real:
+
+```tsx
+// src/pages/cars/Cars.tsx
+const Cars = () => {
+  const { cars, loading } = useCarStore(); // Estado reativo
+  
+  // Quando 'cars' muda, React:
+  // 1. Cria novo Virtual DOM
+  // 2. Compara com anterior (Diffing)
+  // 3. Atualiza apenas diferenças no DOM real
+  return (
+    <div>
+      {cars.map(car => ( // Re-render eficiente
+        <CarCard key={car.id_veiculo} car={car} />
+      ))}
+    </div>
+  );
+};
+```
+
+**Vantagens**:
+- **Performance**: Atualiza apenas elementos modificados
+- **Previsibilidade**: Declarativo vs imperativo
+- **Batching**: Agrupa múltiplas atualizações
+
+#### **P6: "Explique o ciclo de vida dos componentes funcionais com hooks"**
+**R:** Implementamos com useEffect:
+
+```tsx
+// src/pages/cars/hooks/useCarsTable.tsx
+export const useCarsTable = () => {
+  const { cars, loading, fetchCars, deleteCar } = useCarStore();
+  const [searchText, setSearchText] = useState('');
+
+  // MOUNTING: Equivale a componentDidMount
+  useEffect(() => {
+    fetchCars(); // Executa após montagem
+  }, []); // Dependency array vazia
+
+  // UPDATING: Equivale a componentDidUpdate
+  useEffect(() => {
+    // Executa quando searchText muda
+    console.log('Search updated:', searchText);
+  }, [searchText]);
+
+  // UNMOUNTING: Equivale a componentWillUnmount
+  useEffect(() => {
+    return () => {
+      // Cleanup function
+      console.log('Component will unmount');
+    };
+  }, []);
+};
+```
+
+#### **P7: "Como você gerencia estado no React? Por que escolheu Zustand?"**
+**R:** Comparação de estratégias:
+
+```typescript
+// ESTADO LOCAL (useState) - Para dados temporários
+const CarForm = () => {
+  const [formData, setFormData] = useState({}); // Só este componente
+  const [loading, setLoading] = useState(false);
+};
+
+// ESTADO GLOBAL (Zustand) - Para dados compartilhados
+// src/store/carStore.ts
+export const useCarStore = create<CarStore>((set, get) => ({
+  cars: [], // Compartilhado entre componentes
+  loading: false,
+  
+  fetchCars: async () => {
+    // Atualiza estado global
+    set({ loading: true });
+  },
+}));
+```
+
+**Por que Zustand?**
+- **Simplicidade**: 91 linhas vs 200+ do Redux
+- **TypeScript**: Suporte nativo
+- **Performance**: Re-renders otimizados
+- **Boilerplate**: Mínimo
+
+#### **P8: "Como funciona o JSX? Mostre a transpilação"**
+**R:** JSX é syntactic sugar para React.createElement:
+
+```tsx
+// JSX (o que escrevemos):
+const CarCard = ({ car }) => {
+  return (
+    <div className="car-card">
+      <h3>{car.placa}</h3>
+      <p>{car.modelo}</p>
+    </div>
+  );
+};
+
+// JavaScript transpilado (o que executa):
+const CarCard = ({ car }) => {
+  return React.createElement(
+    'div',
+    { className: 'car-card' },
+    React.createElement('h3', null, car.placa),
+    React.createElement('p', null, car.modelo)
+  );
+};
+```
+
+### **🔄 Gerenciamento de Estado e Dados**
+
+#### **P9: "Explique o fluxo de dados unidirecional no React"**
+**R:** Implementamos fluxo Pai → Filho:
+
+```tsx
+// src/pages/CarRegister.tsx (COMPONENTE PAI)
+const CarRegister = () => {
+  const { addCar } = useCarStore(); // Fonte da verdade
+
+  const handleSubmit = async (data: CarFormData) => {
+    await addCar(data); // Atualiza estado global
+  };
+
+  // Props fluem para baixo
+  return (
+    <CarForm 
+      onSubmit={handleSubmit} // Função passada como prop
+      loading={loading} // Estado passado como prop
+    />
+  );
+};
+
+// src/components/CarForm.tsx (COMPONENTE FILHO)
+interface CarFormProps {
+  onSubmit: (data: CarFormData) => Promise<void>; // Recebe props
+  loading?: boolean;
+}
+
+const CarForm: React.FC<CarFormProps> = ({ onSubmit, loading }) => {
+  // Filho comunica com pai via callbacks
+  const handleFormSubmit = (data) => {
+    onSubmit(data); // Chama função do pai
+  };
+};
+```
+
+#### **P10: "Como você sincroniza estado local com estado global?"**
+**R:** Estratégia híbrida:
+
+```tsx
+// src/pages/CarEdit.tsx
+const CarEdit = () => {
+  const { id } = useParams();
+  const { updateCar } = useCarStore(); // Estado global
+  const [car, setCar] = useState<Car | null>(null); // Estado local
+  const [loading, setLoading] = useState(false);
+
+  // Sincronização: Global → Local
+  useEffect(() => {
+    const fetchCar = async () => {
+      const carData = await carService.getById(Number(id));
+      setCar(carData); // Copia global para local
+    };
+    fetchCar();
+  }, [id]);
+
+  // Sincronização: Local → Global
+  const handleSubmit = async (data: CarFormData) => {
+    setLoading(true);
+    try {
+      await updateCar(Number(id), data); // Atualiza global
+      navigate('/cars'); // Redireciona
+    } finally {
+      setLoading(false);
+    }
+  };
+};
+```
+
+### **🌐 Comunicação HTTP e APIs**
+
+#### **P11: "Onde exatamente você chama a API neste código?"**
+**R:** Múltiplos pontos de chamada:
+
+```typescript
+// 1. CONFIGURAÇÃO BASE
+// src/services/api.ts
+const api = axios.create({
+  baseURL: 'http://localhost:8000/api', // URL do servidor Django
+  headers: { 'Content-Type': 'application/json' },
+});
+
+// 2. SERVIÇOS DE API
+export const carService = {
+  getAll: async () => await api.get('/car/'), // CHAMADA REAL DA API
+  create: async (data) => await api.post('/car/', data),
+};
+
+// 3. INTEGRAÇÃO COM ESTADO
+// src/store/carStore.ts
+fetchCars: async () => {
+  const cars = await carService.getAll(); // AQUI CHAMA A API
+  set({ cars });
+},
+
+// 4. USO NOS COMPONENTES
+// src/pages/cars/Cars.tsx
+useEffect(() => {
+  fetchCars(); // TRIGGER DA CHAMADA API
+}, []);
+```
+
+#### **P12: "Como é feita a comunicação Cliente-Servidor neste código?"**
+**R:** Fluxo completo implementado:
+
+```typescript
+// CLIENTE (Frontend)
+// 1. Usuário clica em "Listar Carros"
+const Cars = () => {
+  const { fetchCars } = useCarStore();
+  
+  useEffect(() => {
+    fetchCars(); // 2. Dispara ação
+  }, []);
+};
+
+// 3. Store chama serviço
+const fetchCars = async () => {
+  set({ loading: true });
+  const cars = await carService.getAll(); // 4. HTTP Request
+  set({ cars, loading: false }); // 7. Atualiza UI
+};
+
+// 5. Axios envia HTTP GET
+const getAll = async () => {
+  const response = await api.get('/car/'); // 6. Recebe HTTP Response
+  return response.data;
+};
+
+// SERVIDOR (Django Backend - Porta 8000)
+// Processa requisição, consulta MySQL, retorna JSON
+```
+
+#### **P13: "Cadê os métodos HTTP no seu código?"**
+**R:** Todos implementados:
+
+```typescript
+// src/services/api.ts
+
+// GET - Método Safe e Idempotente
+getAll: async (): Promise<Car[]> => {
+  const response = await api.get<Car[]>('/car/'); // GET HTTP/1.1
+  return response.data;
+},
+
+// POST - Método Not Safe, Not Idempotente  
+create: async (data: CarFormData): Promise<Car> => {
+  const response = await api.post<Car>('/car/', data); // POST HTTP/1.1
+  return response.data;
+},
+
+// PUT - Método Not Safe, Idempotente
+update: async (id: number, data: CarFormData): Promise<Car> => {
+  const response = await api.put<Car>(`/car/${id}/`, data); // PUT HTTP/1.1
+  return response.data;
+},
+
+// DELETE - Método Not Safe, Idempotente
+delete: async (id: number): Promise<void> => {
+  await api.delete(`/car/${id}/`); // DELETE HTTP/1.1
+},
+```
+
+#### **P14: "Como você trata erros de rede e timeouts?"**
+**R:** Tratamento robusto implementado:
+
+```typescript
+// src/services/api.ts
+const api = axios.create({
+  baseURL: 'http://localhost:8000/api',
+  timeout: 10000, // 10 segundos timeout
+});
+
+// src/store/carStore.ts
+fetchCars: async () => {
+  set({ loading: true, error: null });
+  try {
+    const cars = await carService.getAll();
+    set({ cars, loading: false });
+  } catch (error) {
+    let errorMessage = 'Erro desconhecido';
+    
+    if (error.code === 'ECONNABORTED') {
+      errorMessage = 'Timeout - Servidor demorou para responder';
+    } else if (error.response?.status === 500) {
+      errorMessage = 'Erro interno do servidor';
+    } else if (!error.response) {
+      errorMessage = 'Erro de conexão - Verifique sua internet';
+    }
+    
+    set({ 
+      error: errorMessage,
+      loading: false 
+    });
+  }
+},
+```
+
+### **🧭 Roteamento e Navegação**
+
+#### **P15: "Como funciona o roteamento SPA? Por que não recarrega a página?"**
+**R:** React Router usa History API:
+
+```tsx
+// src/App.tsx - Configuração de rotas
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <AppLayout />, // Layout principal
+    children: [
+      { path: 'cars', element: <Cars /> }, // /cars
+      { path: 'cars/register', element: <CarRegister /> }, // /cars/register
+      { path: 'cars/edit/:id', element: <CarEdit /> }, // /cars/edit/123
+    ],
+  },
+]);
+
+// Navegação sem reload
+const useCarsTable = () => {
+  const navigate = useNavigate(); // Hook do React Router
+  
+  const handleEdit = (carId: number) => {
+    navigate(`/cars/edit/${carId}`); // Atualiza URL sem refresh
+  };
+};
+```
+
+**Como funciona**:
+1. **History API**: `window.history.pushState()` 
+2. **JavaScript intercepta**: Cliques em links
+3. **Renderização dinâmica**: Troca componentes sem reload
+4. **URL sincronizada**: Mantém estado da URL
+
+#### **P16: "Como você captura parâmetros da URL?"**
+**R:** useParams hook:
+
+```tsx
+// src/pages/CarEdit.tsx
+const CarEdit = () => {
+  const { id } = useParams<{ id: string }>(); // Captura :id da URL
+  const [car, setCar] = useState<Car | null>(null);
+
+  useEffect(() => {
+    if (id) {
+      const fetchCar = async () => {
+        // Usa parâmetro para buscar carro específico
+        const carData = await carService.getById(Number(id));
+        setCar(carData);
+      };
+      fetchCar();
+    }
+  }, [id]); // Re-executa quando ID muda
+
+  // URL: /cars/edit/123 → id = "123"
+};
+```
+
+### **🎨 Interface e Componentes**
+
+#### **P17: "Como você estrutura componentes reutilizáveis?"**
+**R:** Estratégia de composição:
+
+```tsx
+// src/components/Table/StandardTable.tsx - COMPONENTE GENÉRICO
+interface StandardTableProps<T> {
+  dataSource: T[]; // Genérico para qualquer tipo
+  columns: ColumnsType<T>;
+  loading?: boolean;
+  searchable?: boolean;
+  onSearch?: (value: string) => void;
+}
+
+const StandardTable = <T extends Record<string, any>>({
+  dataSource,
+  columns,
+  loading,
+  searchable,
+  onSearch,
+}: StandardTableProps<T>) => {
+  return (
+    <div>
+      {searchable && (
+        <Input.Search onSearch={onSearch} />
+      )}
+      <Table
+        dataSource={dataSource}
+        columns={columns}
+        loading={loading}
+      />
+    </div>
+  );
+};
+
+// REUTILIZAÇÃO
+// src/pages/cars/Cars.tsx
+const Cars = () => {
+  return (
+    <StandardTable<Car> // Tipagem específica
+      dataSource={cars}
+      columns={carColumns}
+      loading={loading}
+      searchable
+    />
+  );
+};
+```
+
+#### **P18: "Como funciona a tipagem TypeScript nos componentes?"**
+**R:** Type safety completo:
+
+```typescript
+// src/types/index.ts - DEFINIÇÕES
+export interface Car {
+  id_veiculo: number;
+  placa: string;
+  modelo: string;
+  ano: number;
+  status: CarStatus;
+}
+
+export type CarFormData = Omit<Car, 'id_veiculo'>; // Remove ID
+
+// src/components/CarForm.tsx - USO
+interface CarFormProps {
+  initialData?: Partial<CarFormData>; // Opcional
+  onSubmit: (data: CarFormData) => Promise<void>; // Obrigatório
+  loading?: boolean;
+}
+
+const CarForm: React.FC<CarFormProps> = ({ 
+  initialData, 
+  onSubmit, 
+  loading 
+}) => {
+  // TypeScript garante que onSubmit receba CarFormData
+  const handleSubmit = (formData: CarFormData) => {
+    onSubmit(formData); // ✅ Type safe
+  };
+};
+```
+
+### **🏗️ Build e Performance**
+
+#### **P19: "Por que escolheu Vite ao invés de Create React App?"**
+**R:** Performance superior:
+
+```typescript
+// vite.config.ts
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    port: 3000,
+    // HMR instantâneo
+  },
+  build: {
+    // ES Modules nativos
+    target: 'esnext',
+  },
+});
+```
+
+**Vantagens do Vite**:
+- **Startup**: 500ms vs 3-5s (CRA)
+- **HMR**: Instantâneo vs 1-2s
+- **Build**: Rollup vs Webpack
+- **ES Modules**: Nativos no navegador
+
+#### **P20: "Como você otimiza performance no frontend?"**
+**R:** Várias estratégias implementadas:
+
+```tsx
+// 1. MEMOIZAÇÃO DE COMPONENTES
+const CarCard = memo<CarCardProps>(({ car, onEdit, onDelete }) => {
+  // Só re-renderiza se props mudarem
+  return <Card>{car.placa}</Card>;
+});
+
+// 2. HOOKS OTIMIZADOS
+const useCarsTable = () => {
+  const handleEdit = useCallback((car: Car) => {
+    navigate(`/cars/edit/${car.id_veiculo}`);
+  }, [navigate]); // Dependência estável
+
+  const filteredCars = useMemo(() => {
+    return cars.filter(car => car.status === 'DISPONIVEL');
+  }, [cars]); // Só recalcula se cars mudar
+};
+
+// 3. LAZY LOADING (conceitual)
+const LazyCarAnalytics = lazy(() => import('./CarAnalytics'));
+
+// 4. ESTADO LOCALIZADO
+const CarForm = () => {
+  const [formData, setFormData] = useState({}); // Local, não global
+};
+```
+
+### **🔧 Ferramentas e Desenvolvimento**
+
+#### **P21: "Como você debugga problemas de estado no React?"**
+**R:** Múltiplas ferramentas:
+
+```typescript
+// 1. REACT DEVTOOLS
+// src/store/carStore.ts
+export const useCarStore = create<CarStore>()(
+  devtools( // ✅ Integração com Redux DevTools
+    (set, get) => ({
+      cars: [],
+      fetchCars: async () => {
+        console.log('Fetching cars...'); // 2. Console logs
+        set({ loading: true });
+      },
+    }),
+    { name: 'CarStore' } // Nome no DevTools
+  )
+);
+
+// 3. CUSTOM HOOKS PARA DEBUG
+const useDebugState = (state: any, label: string) => {
+  useEffect(() => {
+    console.log(`${label}:`, state);
+  }, [state, label]);
+};
+
+// 4. ERROR BOUNDARIES
+class ErrorBoundary extends Component {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('React Error:', error, errorInfo);
+  }
+}
+```
+
+#### **P22: "Como você garante qualidade de código?"**
+**R:** Pipeline de qualidade:
+
+```json
+// package.json
+{
+  "scripts": {
+    "lint": "eslint .", // ✅ Linting
+    "build": "tsc -b && vite build", // ✅ Type checking
+    "dev": "vite", // ✅ Hot reload
+  },
+  "devDependencies": {
+    "typescript": "~5.8.3", // ✅ Type safety
+    "eslint": "^9.29.0", // ✅ Code quality
+  }
+}
+```
+
+```typescript
+// tsconfig.json - Configuração rigorosa
+{
+  "compilerOptions": {
+    "strict": true, // ✅ Strict mode
+    "noImplicitAny": true, // ✅ Força tipagem
+    "noUnusedLocals": true, // ✅ Remove código morto
+  }
+}
+```
+
+### **🚀 Conceitos Avançados**
+
+#### **P23: "Explique o conceito de Single Page Application"**
+**R:** SPA vs Multi-Page:
+
+```typescript
+// TRADICIONAL (Multi-Page)
+// 1. Usuário clica link
+// 2. Browser faz nova requisição HTTP
+// 3. Servidor retorna HTML completo
+// 4. Página recarrega totalmente
+
+// SPA (Nosso projeto)
+// 1. Usuário clica link
+// 2. JavaScript intercepta
+// 3. React troca componentes
+// 4. URL atualiza (History API)
+// 5. Sem reload de página
+
+// src/App.tsx
+const App = () => {
+  return (
+    <BrowserRouter> {/* Roteamento client-side */}
+      <Routes>
+        <Route path="/cars" element={<Cars />} />
+        <Route path="/cars/register" element={<CarRegister />} />
+      </Routes>
+    </BrowserRouter>
+  );
+};
+```
+
+**Vantagens SPA**:
+- ✅ UX fluida (sem flashes)
+- ✅ Performance (recursos cachados)
+- ✅ Interatividade rica
+
+**Desvantagens SPA**:
+- ❌ SEO complexo
+- ❌ Bundle maior inicial
+- ❌ Complexidade de estado
+
+#### **P24: "Como você implementaria autenticação neste sistema?"**
+**R:** Estratégia JWT:
+
+```typescript
+// HIPOTÉTICO - Como implementaríamos
+// src/contexts/AuthContext.tsx
+interface AuthContextType {
+  user: User | null;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => void;
+  isAuthenticated: boolean;
+}
+
+const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+
+  const login = async (email: string, password: string) => {
+    const response = await authService.login({ email, password });
+    const { user, token } = response.data;
+    
+    // Armazenar token
+    localStorage.setItem('authToken', token);
+    setUser(user);
+  };
+
+  // Interceptor automático
+  useEffect(() => {
+    api.interceptors.request.use((config) => {
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    });
+  }, []);
+};
+
+// Protected Routes
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? children : <Navigate to="/login" />;
+};
+```
+
+#### **P25: "Como você escalaria este frontend para uma aplicação maior?"**
+**R:** Estratégias de escala:
+
+```typescript
+// 1. FEATURE-BASED ARCHITECTURE
+src/
+├── features/
+│   ├── cars/
+│   │   ├── components/
+│   │   ├── hooks/
+│   │   ├── services/
+│   │   └── store/
+│   ├── users/
+│   └── reports/
+├── shared/
+│   ├── components/
+│   ├── hooks/
+│   └── utils/
+
+// 2. CODE SPLITTING
+const LazyReports = lazy(() => import('../features/reports'));
+const LazyUsers = lazy(() => import('../features/users'));
+
+// 3. MICRO FRONTENDS
+const CarModule = React.lazy(() => import('car-module/App'));
+const UserModule = React.lazy(() => import('user-module/App'));
+
+// 4. STATE MANAGEMENT ESCALÁVEL
+// Zustand com slices
+const useAppStore = create()(
+  devtools(
+    persist(
+      (...a) => ({
+        ...createCarSlice(...a),
+        ...createUserSlice(...a),
+        ...createReportSlice(...a),
+      }),
+      { name: 'app-store' }
+    )
+  )
+);
+```
+
+---
+
+### **📚 Resumo dos Pontos-Chave para Defesa**
+
+**Conceitos Demonstrados**:
+✅ Protocolo HTTP (métodos, status, headers)
+✅ Modelo Cliente-Servidor  
+✅ SPA (Single Page Application)
+✅ URI/URL/URN práticos
+✅ Virtual DOM e reconciliação
+✅ Gerenciamento de estado (local vs global)
+✅ Comunicação assíncrona
+✅ TypeScript type safety
+✅ Componentização e reutilização
+✅ Performance e otimização
+
+**Tecnologias Dominadas**:
+✅ React 19 + Hooks
+✅ TypeScript strict mode
+✅ Zustand state management
+✅ React Router SPA
+✅ Axios HTTP client
+✅ Ant Design UI library
+✅ Vite build tool
+
+---
+
 **Este frontend demonstra domínio completo dos conceitos de desenvolvimento web moderno, implementando uma solução prática e profissional para gestão de carros.**
